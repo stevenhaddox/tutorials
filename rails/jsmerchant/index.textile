@@ -14,7 +14,7 @@ In this project you'll build an e-commerce site for a small grocery that wants t
 * I6: Establishing Identity  
 * I7: Checkout
 
-Each of these iterations will start and end with a working product.
+Each of these iterations will start and end with a working product that is awesome.
 
 h2. I0: Up and Running
 
