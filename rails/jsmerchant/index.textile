@@ -14,7 +14,7 @@ In this project you'll build an e-commerce site for a small grocery that wants t
 * I6: Establishing Identity  
 * I7: Checkout
 
-Each of these iterations will start and end with a working product that is awesome.
+Each of these iterations will start and end with a working product.
 
 h2. I0: Up and Running
 
@@ -348,12 +348,12 @@ We don't see that method in our code because ActiveRecord generates it on the fl
 
 <pre class="brush:ruby">
   def price=(input)
-    input.delete!("$") if input
+    input.delete!("$")
     super
   end
 </pre>
 
-The first line looks to see if an @input@ was passed in. If it was, do an in-place delete (@delete!@ as opposed to @delete@), removing any dollar signs. Then, with the value changed, @super@ invokes the original @price=@ method.
+The first line does an in-place delete (@delete!@ as opposed to @delete@), removing any dollar signs. Then, with the value changed, @super@ invokes the original @price=@ method.
 
 Try it out in your console and browser. Set prices like "2.99" and "$3.99" -- they should both work as expected.
 
@@ -515,6 +515,10 @@ class Order < ActiveRecord::Base
 end
 </pre>
 
+h4. Products to Order Items
+
+We won't actually need it for our application, but as long as a @Product@ is related to an @OrderItem@, you should go ahead and add the @has_many@ association in @product.rb@.
+
 h3. Implementing an Order Workflow
 
 That was the easy part. Now it's going to get tricky. 
@@ -568,6 +572,45 @@ First, we're declaring a @before_filter@. This first line tells Rails "before ev
 We then define the method named @load_order@. Rails provides us access to the user session through the @session@ hash. This method tries to find the @Order@ with the @:order_id@ in the session and stores it into the variable named @@order@. If the @session@ hash does not have a key named @:order_id@ or the order has been destroyed, Rails will raise an @ActiveRecord::RecordNotFound@ error. The @rescue@ statement watches for this error and, if it occurs, creates a new @Order@, stores it into the variable @@order@, and saves the ID number into @session[:order_id]@.
 
 With that code in place refresh your Products index and...nothing looks different. Rails has silently created an @Order@ and saved the ID number into a cookie in your browser. To verify that an order got created, open a second web browser tab and load @http://localhost:3000/orders/@ where you should see a single unsubmitted order. 
+
+h4. Improving @load_order@
+
+In general we should avoid using exceptions for control flow. Our implementation of @load_order@ is expecting an exception to be raised under a somewhat normal circumstance: a new user arrives on the site. We should redesign this method to not rely on @begin@/@rescue@/@end@.
+
+@ActiveRecord@ provides us with dynamic finders and initializers for all our models. For a @Product@, we can do any of the following:
+
+<pre brush="class:ruby">
+  Product.find 2
+  Product.find_by_title "Green Grapes"
+  Product.find_by_image_url "purple_grapes.jpg"
+</pre>
+ 
+We can call a class method @find_by_@ then give it the name of any model attribute to search for a match. We can also use @find_all_by_@ to fetch an array of all matches.
+
+How does that help us here? Well, Rails takes it a step further:
+
+<pre brush="class:ruby">
+  Product.find_or_initialize_by_id(5)
+  Product.find_or_initialize_by_title "Apples"
+</pre>
+
+The @find_or_initialize_by_@ method will first attempt to find a match in the database for the specified attribute and value. If it finds one, that object will be returned. If it _doesn't_ find a match, it will build one in memory and return the new object. 
+
+This object will not yet have been saved to the database. If we wanted to build it and save it in one step, we could use @find_or_create_by@. Returning to our @load_order@ method, we can implement the technique like this:
+
+<pre class="brush:ruby">
+  def load_order
+    @order = Order.find_or_initialize_by_id(session[:order_id], :status => "unsubmitted")
+    if @order.new_record?
+      @order.save!
+      session[:order_id] = @order.id
+    end
+  end
+</pre>
+
+Note that the @:status => "unsubmitted"@ will only set the @status@ if it is initializing a new object, it will not change the value of records found in the database. 
+
+From there we look to see if it is a @new_record?@, which is true when the record has not yet been stored to the DB. If it is new, save it to the DB so it gets an ID, the store that ID into the user's @session@.
 
 h4. Now Add the Product to the Order
 
@@ -716,7 +759,7 @@ h4. @OrderItem@ Subtotal
 
 The subtotal is the easier part because it only involves one object, the @OrderItem@. We can ask an @OrderItem@ to output its subtotal like this:
 
-<pre class="brush">
+<pre class="brush:ruby">
   <%= print_price item.subtotal %>
 </pre>
 
@@ -763,7 +806,31 @@ On the @show@ view for your @Order@, add a link like this:
 
 Hop into the @destroy@ action of @OrdersController@ and change the redirect so it sends you back to @products_path@.
 
-Then give it a try. When it works, Iteration 4 is complete!
+Then give it a try. 
+
+h4. Destroying @OrderItem@ Records
+
+If you go to "http://localhost:3000/order_items/" you'll see all the @OrderItem@ records stored in the database. Go to your console and erase all the existing @Order@ objects:
+
+<pre class="brush:ruby">
+  Order.destroy_all
+</pre>
+
+Refresh the @OrderItem@ listing and...they're all still there? If an @Order@ gets destroyed then we want the @OrderItem@ objects to go too!
+
+Go into @Order@ model. Change the @has_many :order_items@ line to this:
+
+<pre class="brush:ruby">
+  has_many :order_items, :dependent => :destroy
+</pre>
+
+Now, when an @Order@ is destroyed all the associated order items will get destroyed too. This does *not* remove the @OrderItem@ objects that are already orphaned in the database. Kill those through the console:
+
+<pre class="brush:ruby">
+  OrderItem.destroy_all
+</pre>
+
+Then, through the web interface, add a few items to a new @Order@. Destroy that @Order@, and check that the associated items are gone too. When it works, Iteration 4 is complete!
 
 h2. Iteration 5 - Dealing with Order Quantities
 
