@@ -25,7 +25,7 @@ Ruby is thought of by many as a "new" programming language, but it actually was 
 
 Ruby was released in '94 and it grew an audience quickly -- in Japan.  Until 2000 there really wasn't any documentation about the language that wasn't in Japanese, so if you wanted to learn Ruby you were pretty much on your own.  Dave Thomas, a pioneer of agile programming, became enamored with Ruby and decided to create that documentation.  He wrote what's affectionately known as "The Pickaxe", due to its cover image, which opened Ruby to the English-speaking world.
 
-From there Ruby started growing, though slowly.  It because popular with system administrators to write maintenance and "glue" scripts -- the kinds of things Perl had been used for.  The US Ruby community numbered in the hundreds from 2000-2005.
+From there Ruby started growing, though slowly.  It became popular with system administrators to write maintenance and "glue" scripts -- the kinds of things Perl had been used for.  The US Ruby community numbered in the hundreds from 2000-2005.
 
 In 2004-2005 a Chicago company named 37Signals hired a young CS student to build a web application.  They gave him almost total freedom for the implementation; they were only concerned with the design and functionality from the client-side.  At the time the predominant web technologies were PHP, Java's JSP, and Microsoft's ASP.  They were each somewhat painful, so David, today known as DHH, went his own direction.
 
